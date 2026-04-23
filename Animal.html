@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Edukasi Keluarga & Binatang</title>
+    <style>
+        * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+        }
+
+        .background { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-image: url('bg.png'); background-size: cover; background-position: center; z-index: -1; 
+        }
+
+        .game-container { 
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; width: 100vw; position: relative; overflow: hidden;
+        }
+
+        /* Area Pemicu Suara */
+        .sound-trigger-area { 
+            position: absolute; width: 100%; height: 100%; z-index: 5; 
+            display: flex; justify-content: center; align-items: center; 
+        }
+
+        /* Transisi Super Halus */
+        .display-wrapper { 
+            text-align: center; 
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); 
+            position: absolute;
+            width: 100%;
+            pointer-events: none; 
+        }
+
+        .slide-center { opacity: 1; transform: translateX(0) scale(1); filter: blur(0px); }
+        .slide-out-left { opacity: 0; transform: translateX(-100vw) scale(0.9); filter: blur(8px); }
+        .slide-in-right { opacity: 0; transform: translateX(100vw) scale(0.9); filter: blur(8px); }
+
+        img#main-img { 
+            width: 350px; max-width: 85vw; max-height: 60vh; 
+            height: auto; object-fit: contain; border-radius: 25px; 
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.4)); 
+            border: none;
+        }
+
+        h1 { 
+            color: white; text-transform: uppercase; 
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8); 
+            background: none; backdrop-filter: none; 
+            padding: 0; margin-top: 20px; 
+            display: inline-block;
+        }
+
+        /* Navigasi */
+        .nav-btn { 
+            position: absolute; top: 0; bottom: 0; width: 15%; z-index: 20; 
+            display: flex; align-items: center; justify-content: center; 
+            color: rgba(255,255,255,0.5); font-size: 3rem; cursor: pointer; 
+        }
+        .btn-left { left: 0; } .btn-right { right: 0; }
+
+        /* Tombol Tambah & Hapus */
+        #btn-add-data { 
+            position: fixed; bottom: 20px; right: 20px; z-index: 30; 
+            background: #ff9800; color: white; border: none; width: 60px; height: 60px; 
+            border-radius: 50%; font-size: 30px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+        }
+        #btn-delete { 
+            position: fixed; bottom: 20px; left: 20px; z-index: 30; 
+            background: #f44336; color: white; border: none; padding: 12px 20px; 
+            border-radius: 30px; cursor: pointer; display: none; font-weight: bold;
+        }
+
+        /* Modal Form */
+        #form-modal { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.9); z-index: 100; display: none; 
+            flex-direction: column; justify-content: center; align-items: center; color: white; 
+        }
+        .form-container { background: #fff; color: #333; padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; }
+        .form-container input { width: 100%; margin: 10px 0; padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
+        .form-container button { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-save { background: #4caf50; color: white; }
+        .btn-cancel { background: #999; color: white; }
+
+        #fullscreen-overlay { 
+            position: fixed; top:0; left:0; width: 100%; height:100%; 
+            background: rgba(0,0,0,0.95); color: white; z-index: 200; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+<div id="fullscreen-overlay" onclick="startApp()">
+    <h1>MULAI GAME</h1>
+    <p>Sentuh layar untuk suara<br>Gunakan <b>+</b> untuk tambah Ayah/Ibu/Kaka</p>
+</div>
+
+<div class="background"></div>
+
+<div class="game-container">
+    <div class="nav-btn btn-left" onclick="prevItem()">&#10094;</div>
+    
+    <div class="sound-trigger-area" onclick="playCurrentSound()">
+        <div id="display-area" class="display-wrapper slide-center">
+            <img id="main-img" src="" alt="">
+            <br>
+            <h1 id="main-name"></h1>
+        </div>
+    </div>
+
+    <div class="nav-btn btn-right" onclick="nextItem()">&#10095;</div>
+</div>
+
+<button id="btn-add-data" onclick="toggleForm(true)">+</button>
+<button id="btn-delete" onclick="deleteCurrentItem()">HAPUS</button>
+
+<div id="form-modal">
+    <div class="form-container">
+        <h3 style="margin-top:0">Tambah Karakter</h3>
+        <input type="text" id="in-nama" placeholder="Keterangan (Contoh: AYAH)">
+        <p style="font-size: 12px; margin: 5px 0 0 0;">Pilih Foto:</p>
+        <input type="file" id="file-gambar" accept="image/*">
+        <p style="font-size: 12px; margin: 5px 0 0 0;">Pilih Suara:</p>
+        <input type="file" id="file-suara" accept="audio/*">
+        <button class="btn-save" onclick="saveNewData()">SIMPAN</button>
+        <button class="btn-cancel" onclick="toggleForm(false)">BATAL</button>
+    </div>
+</div>
+
+<audio id="player" loop></audio>
+<audio id="backsound" loop></audio>
+
+<script>
+    let defaultData = [
+        { nama: "Kucing", gambar: "kuc.png", suara: "meow-1.mp3", isCustom: false },
+        { nama: "Sapi", gambar: "sa.png", suara: "moo.mp3", isCustom: false },
+        { nama: "Ayam", gambar: "ayam.png", suara: "kuku.m4a", isCustom: false },
+        { nama: "Ayam Betina", gambar: "aybet.png", suara: "aybet.m4a", isCustom: false },
+        { nama: "BURUNG", gambar: "bur.png", suara: "burung.m4a", isCustom: false },
+        { nama: "Beruang", gambar: "ber.png", suara: "bear.m4a", isCustom: false },
+        { nama: "Bebek", gambar: "bebek.png", suara: "bebek.m4a", isCustom: false },
+        { nama: "Domba", gambar: "dom.png", suara: "domba.m4a", isCustom: false },
+        { nama: "Gajah", gambar: "gaj.png", suara: "gajah.m4a", isCustom: false },
+        { nama: "Jerapah", gambar: "jer.png", suara: "jerap.m4a", isCustom: false },
+        { nama: "Kuda", gambar: "kud.png", suara: "kuda.m4a", isCustom: false },
+        { nama: "Harimau", gambar: "har.png", suara: "aum.m4a", isCustom: false },
+        { nama: "AYAH", gambar: "ayah.png", suara: "wrong.mp3", isCustom: false },
+        { nama: "TETEH", gambar: "teteh.png", suara: "aum.m4a", isCustom: false }
+    ];
+
+    let dataApp = [];
+    let currentIndex = 0;
+    let isTransitioning = false;
+    const player = document.getElementById('player');
+    const displayArea = document.getElementById('display-area');
+
+    function loadFromStorage() {
+        const stored = localStorage.getItem('gameData');
+        dataApp = stored ? JSON.parse(stored) : defaultData;
+    }
+
+    function startApp() {
+        document.getElementById('fullscreen-overlay').style.display = 'none';
+        const backsound = document.getElementById('backsound');
+        backsound.src = "bs.m4a";
+        backsound.volume = 0.2;
+        backsound.play().catch(() => {});
+        loadFromStorage();
+        loadItem(currentIndex);
+    }
+
+    function toggleForm(show) {
+        document.getElementById('form-modal').style.display = show ? 'flex' : 'none';
+    }
+
+    function toBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    async function saveNewData() {
+        const nama = document.getElementById('in-nama').value;
+        const imgFile = document.getElementById('file-gambar').files[0];
+        const audioFile = document.getElementById('file-suara').files[0];
+
+        if(nama && imgFile && audioFile) {
+            try {
+                const base64Img = await toBase64(imgFile);
+                const base64Audio = await toBase64(audioFile);
+                dataApp.push({ nama: nama.toUpperCase(), gambar: base64Img, suara: base64Audio, isCustom: true });
+                localStorage.setItem('gameData', JSON.stringify(dataApp));
+                alert("Berhasil disimpan!");
+                toggleForm(false);
+                location.reload(); // Refresh untuk update daftar
+            } catch (e) {
+                alert("File terlalu besar! Coba gunakan foto yang lebih kecil.");
+            }
+        } else {
+            alert("Isi semua data ya!");
+        }
+    }
+
+    function loadItem(index, direction = 'right') {
+        if(dataApp.length === 0) return;
+        const current = dataApp[index];
+        player.pause();
+        
+        document.getElementById('btn-delete').style.display = current.isCustom ? 'block' : 'none';
+
+        displayArea.className = direction === 'right' ? 'display-wrapper slide-in-right' : 'display-wrapper slide-out-left';
+        
+        setTimeout(() => {
+            document.getElementById('main-img').src = current.gambar;
+            document.getElementById('main-name').innerText = current.nama;
+            player.src = current.suara;
+            displayArea.className = 'display-wrapper slide-center';
+            isTransitioning = false;
+        }, 400);
+    }
+
+    function nextItem() {
+        if (isTransitioning || dataApp.length <= 1) return;
+        isTransitioning = true;
+        displayArea.className = 'display-wrapper slide-out-left';
+        setTimeout(() => {
+            currentIndex = (currentIndex + 1) % dataApp.length;
+            loadItem(currentIndex, 'right');
+        }, 400);
+    }
+
+    function prevItem() {
+        if (isTransitioning || dataApp.length <= 1) return;
+        isTransitioning = true;
+        displayArea.className = 'display-wrapper slide-in-right';
+        setTimeout(() => {
+            currentIndex = (currentIndex - 1 + dataApp.length) % dataApp.length;
+            loadItem(currentIndex, 'left');
+        }, 400);
+    }
+
+    function deleteCurrentItem() {
+        if(confirm("Hapus " + dataApp[currentIndex].nama + "?")) {
+            dataApp.splice(currentIndex, 1);
+            localStorage.setItem('gameData', JSON.stringify(dataApp));
+            location.reload();
+        }
+    }
+
+    function playCurrentSound() {
+        if (!isTransitioning) player.play().catch(() => {});
+    }
+</script>
+</body>
+</html>
