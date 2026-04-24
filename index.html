@@ -151,8 +151,6 @@
         { nama: "Jerapah", gambar: "jer.png", suara: "jerap.m4a", isCustom: false },
         { nama: "Kuda", gambar: "kud.png", suara: "kuda.m4a", isCustom: false },
         { nama: "Harimau", gambar: "har.png", suara: "aum.m4a", isCustom: false },
-        { nama: "AYAH", gambar: "ayah.png", suara: "wrong.mp3", isCustom: false },
-        { nama: "TETEH", gambar: "teteh.png", suara: "aum.m4a", isCustom: false }
     ];
 
     let dataApp = [];
@@ -169,7 +167,7 @@
     function startApp() {
         document.getElementById('fullscreen-overlay').style.display = 'none';
         const backsound = document.getElementById('backsound');
-        backsound.src = "bs.m4a";
+        backsound.src = "bso.m4a";
         backsound.volume = 0.2;
         backsound.play().catch(() => {});
         loadFromStorage();
